@@ -37,6 +37,21 @@ def get_chunk(x, y, level_cache):
             chunks[(i, j)] = level_cache[(i, j)]
     return chunks
 
+def find_safe_start_position(level_chunks, chunk_x, chunk_y):
+    """Находит безопасное место для старта игрока на белом фоне."""
+    for x in range(CHUNK_SIZE):
+        for y in range(CHUNK_SIZE):
+            if int(level_chunks[(chunk_x, chunk_y)][x, y]) != 1:  # Если не почва
+                return (chunk_x * CHUNK_SIZE + x) * TILE_SIZE, (chunk_y * CHUNK_SIZE + y) * TILE_SIZE
+
+    # Если в текущем чанке нет безопасного места (очень маловероятно), ищем дальше
+    for key, level in level_chunks.items():
+        for x in range(CHUNK_SIZE):
+            for y in range(CHUNK_SIZE):
+                if int(level[x, y]) != 1:
+                    return (key[0] * CHUNK_SIZE + x) * TILE_SIZE, (key[1] * CHUNK_SIZE + y) * TILE_SIZE
+    return 0, 0  # Если вообще не нашлось места, (можно вернуть случайные координаты)
+
 # Инициализация Pygame
 pygame.init()
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -62,14 +77,17 @@ def draw_level(level_chunks, player_x, player_y):
 
 # Основной игровой цикл
 def main():
-    player_x, player_y = WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2
-    camera_x, camera_y = 0, 0
+    chunk_x = 0
+    chunk_y = 0
 
     # Инициализация кэша чанков уровня
     level_cache = {}
-    chunk_x = player_x // (CHUNK_SIZE * TILE_SIZE)
-    chunk_y = player_y // (CHUNK_SIZE * TILE_SIZE)
     level_chunks = get_chunk(chunk_x, chunk_y, level_cache)
+
+    # Найти безопасное место для начала
+    player_x, player_y = find_safe_start_position(level_chunks, chunk_x, chunk_y)
+
+    camera_x, camera_y = 0, 0
 
     running = True
     while running:
